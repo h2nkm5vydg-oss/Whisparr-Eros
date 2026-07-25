@@ -206,13 +206,18 @@ namespace NzbDrone.Core.Profiles.Qualities
                 Quality.Remux1080p);
 
             AddDefaultProfile("VR",
+                Quality.VR12K,
                 Quality.VR,
-                Quality.VR);
+                Quality.VR4K,
+                Quality.VR5K,
+                Quality.VR6K,
+                Quality.VR8K,
+                Quality.VR12K);
         }
 
         public QualityProfile GetDefaultProfile(string name, Quality cutoff = null, params Quality[] allowed)
         {
-            var groupedQualites = Quality.DefaultQualityDefinitions.GroupBy(q => q.Weight);
+            var groupedQualites = Quality.DefaultQualityDefinitions.OrderBy(q => q.Weight).GroupBy(q => q.Weight);
             var items = new List<QualityProfileQualityItem>();
             var groupId = 1000;
             var profileCutoff = cutoff == null ? Quality.Unknown.Id : cutoff.Id;

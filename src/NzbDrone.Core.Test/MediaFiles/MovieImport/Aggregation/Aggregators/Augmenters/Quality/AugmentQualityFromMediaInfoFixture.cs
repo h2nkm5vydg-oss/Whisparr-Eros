@@ -119,5 +119,49 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport.Aggregation.Aggregators.Augm
             result.Resolution.Should().Be(1080);
             result.Source.Should().Be(QualitySource.Unknown);
         }
+
+        [TestCase(3840, 1920, 1920)]
+        [TestCase(5400, 2700, 2700)]
+        [TestCase(5760, 2880, 2880)]
+        [TestCase(7680, 3840, 3840)]
+        [TestCase(11520, 5760, 5760)]
+        public void should_use_vr_resolution_mapping_when_media_title_establishes_vr(int width, int height, int expectedResolution)
+        {
+            var mediaInfo = Builder<MediaInfoModel>.CreateNew()
+                .With(model => model.Width = width)
+                .With(model => model.Height = height)
+                .With(model => model.Title = "ZZVR-000 VR180")
+                .Build();
+
+            var localMovie = Builder<LocalMovie>.CreateNew()
+                .With(movie => movie.MediaInfo = mediaInfo)
+                .Build();
+
+            var result = Subject.AugmentQuality(localMovie, null);
+
+            result.Source.Should().Be(QualitySource.VR);
+            result.SourceConfidence.Should().Be(Confidence.MediaInfo);
+            result.Resolution.Should().Be(expectedResolution);
+            result.ResolutionConfidence.Should().Be(Confidence.MediaInfo);
+        }
+
+        [Test]
+        public void should_not_apply_conventional_resolution_to_unrecognized_vr_dimensions()
+        {
+            var mediaInfo = Builder<MediaInfoModel>.CreateNew()
+                .With(model => model.Width = 6800)
+                .With(model => model.Height = 3400)
+                .With(model => model.Title = "ZZVR-000 VR180")
+                .Build();
+
+            var localMovie = Builder<LocalMovie>.CreateNew()
+                .With(movie => movie.MediaInfo = mediaInfo)
+                .Build();
+
+            var result = Subject.AugmentQuality(localMovie, null);
+
+            result.Source.Should().Be(QualitySource.VR);
+            result.Resolution.Should().Be(0);
+        }
     }
 }

@@ -392,5 +392,41 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
             movieFile.Quality.Quality.Should().Be(Quality.WEBDL2160p);
             movieFile.Quality.ResolutionDetectionSource.Should().Be(QualityDetectionSource.MediaInfo);
         }
+
+        [Test]
+        public void should_persist_resolution_aware_vr_quality_from_media_info()
+        {
+            var path = Path.Combine(_movie.Path, "[8KVR] ZZVR-000 [VR].mp4");
+
+            var movieFile = Builder<MovieFile>.CreateNew()
+                .With(file => file.Path = path)
+                .With(file => file.RelativePath = Path.GetFileName(path))
+                .With(file => file.Quality = new QualityModel(Quality.VR))
+                .Build();
+
+            GivenFileExists();
+
+            Mocker.GetMock<IVideoFileInfoReader>()
+                .Setup(reader => reader.GetMediaInfo(path))
+                .Returns(new MediaInfoModel { Width = 7680, Height = 3840 });
+
+            var fileNameAugment = new Mock<IAugmentQuality>();
+            fileNameAugment.SetupGet(augmenter => augmenter.Order).Returns(1);
+            fileNameAugment.Setup(augmenter => augmenter.AugmentQuality(It.IsAny<LocalMovie>(), It.IsAny<DownloadClientItem>()))
+                .Returns(new AugmentQualityResult(QualitySource.VR, Confidence.Tag, Quality.VR8K.Resolution, Confidence.Tag, new Revision(), Confidence.Default));
+
+            var mediaInfoAugment = new Mock<IAugmentQuality>();
+            mediaInfoAugment.SetupGet(augmenter => augmenter.Order).Returns(4);
+            mediaInfoAugment.Setup(augmenter => augmenter.AugmentQuality(It.IsAny<LocalMovie>(), It.IsAny<DownloadClientItem>()))
+                .Returns(AugmentQualityResult.ResolutionOnly((int)Resolution.R4320p, Confidence.MediaInfo));
+
+            Mocker.SetConstant<IEnumerable<IAugmentQuality>>(new[] { fileNameAugment.Object, mediaInfoAugment.Object });
+
+            Subject.Update(movieFile, _movie);
+
+            movieFile.Quality.Quality.Should().Be(Quality.VR8K);
+            movieFile.Quality.ResolutionDetectionSource.Should().Be(QualityDetectionSource.MediaInfo);
+            Mocker.GetMock<IMediaFileService>().Verify(service => service.Update(movieFile), Times.Once());
+        }
     }
 }

@@ -270,5 +270,47 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                     new List<CustomFormat> { customFormatTwo })
                 .Should().Be(UpgradeableRejectReason.None);
         }
+
+        [Test]
+        public void should_upgrade_through_vr_resolution_variants()
+        {
+            var qualities = new[]
+            {
+                Quality.VR,
+                Quality.VR4K,
+                Quality.VR5K,
+                Quality.VR6K,
+                Quality.VR8K,
+                Quality.VR12K
+            };
+
+            var profile = new QualityProfile
+            {
+                Items = new List<QualityProfileQualityItem>(),
+                UpgradeAllowed = true,
+                Cutoff = Quality.VR12K.Id,
+                FormatItems = new List<ProfileFormatItem>()
+            };
+
+            foreach (var quality in qualities)
+            {
+                profile.Items.Add(new QualityProfileQualityItem
+                {
+                    Quality = quality,
+                    Allowed = true
+                });
+            }
+
+            for (var i = 1; i < qualities.Length; i++)
+            {
+                Subject.IsUpgradable(
+                        profile,
+                        new QualityModel(qualities[i - 1]),
+                        new List<CustomFormat>(),
+                        new QualityModel(qualities[i]),
+                        new List<CustomFormat>())
+                    .Should().Be(UpgradeableRejectReason.None);
+            }
+        }
     }
 }

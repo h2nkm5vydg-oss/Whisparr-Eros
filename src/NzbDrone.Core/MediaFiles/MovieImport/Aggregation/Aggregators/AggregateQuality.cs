@@ -39,8 +39,16 @@ namespace NzbDrone.Core.MediaFiles.MovieImport.Aggregation.Aggregators
             var sourceConfidence = Confidence.Default;
             var resolution = 0;
             var resolutionConfidence = Confidence.Default;
+            var vrResolution = 0;
+            var vrResolutionConfidence = Confidence.Default;
             var revision = new Revision(1);
             var revisionConfidence = Confidence.Default;
+
+            if (source == QualitySource.VR &&
+                localMovie.Quality.Quality.Resolution > 0)
+            {
+                vrResolution = localMovie.Quality.Quality.Resolution;
+            }
 
             foreach (var augmentQuality in _augmentQualities)
             {
@@ -66,6 +74,14 @@ namespace NzbDrone.Core.MediaFiles.MovieImport.Aggregation.Aggregators
                     resolutionConfidence = augmentedQuality.ResolutionConfidence;
                 }
 
+                if (augmentedQuality.Source == QualitySource.VR &&
+                    IsSpecificVrResolution(augmentedQuality.Resolution) &&
+                    (vrResolution == 0 || augmentedQuality.ResolutionConfidence > vrResolutionConfidence))
+                {
+                    vrResolution = augmentedQuality.Resolution;
+                    vrResolutionConfidence = augmentedQuality.ResolutionConfidence;
+                }
+
                 if (augmentedQuality.Revision != null)
                 {
                     // Update the revision and confidence if it is higher than the current confidence,
@@ -84,6 +100,29 @@ namespace NzbDrone.Core.MediaFiles.MovieImport.Aggregation.Aggregators
                         revision = augmentedQuality.Revision;
                         revisionConfidence = augmentedQuality.RevisionConfidence;
                     }
+                }
+            }
+
+            if (source == QualitySource.VR)
+            {
+                var mediaInfoVrResolution = localMovie.MediaInfo == null
+                    ? null
+                    : VrResolutionMapper.FromDimensions(localMovie.MediaInfo.Width, localMovie.MediaInfo.Height);
+
+                if (mediaInfoVrResolution.HasValue)
+                {
+                    resolution = mediaInfoVrResolution.Value;
+                    resolutionConfidence = Confidence.MediaInfo;
+                }
+                else if (vrResolution > 0)
+                {
+                    resolution = vrResolution;
+                    resolutionConfidence = vrResolutionConfidence;
+                }
+                else
+                {
+                    resolution = 0;
+                    resolutionConfidence = Confidence.Default;
                 }
             }
 
@@ -120,6 +159,13 @@ namespace NzbDrone.Core.MediaFiles.MovieImport.Aggregation.Aggregators
             localMovie.Quality = quality;
 
             return localMovie;
+        }
+
+        private static bool IsSpecificVrResolution(int resolution)
+        {
+            return Quality.All.Any(quality => quality.Source == QualitySource.VR &&
+                                              quality.Resolution == resolution &&
+                                              quality != Quality.VR);
         }
     }
 }

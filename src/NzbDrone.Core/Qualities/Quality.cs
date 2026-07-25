@@ -117,7 +117,12 @@ namespace NzbDrone.Core.Qualities
         public static Quality WEBRip1080p => new Quality(15, "WEBRip-1080p", QualitySource.WebRip, 1080);
         public static Quality WEBRip2160p => new Quality(17, "WEBRip-2160p", QualitySource.WebRip, 2160);
 
-        public static Quality VR => new Quality(32, "VR", QualitySource.VR, 1080);
+        public static Quality VR => new Quality(32, "VR", QualitySource.VR, 0);
+        public static Quality VR4K => new Quality(37, "VR-4K", QualitySource.VR, 1920);
+        public static Quality VR5K => new Quality(38, "VR-5K", QualitySource.VR, 2700);
+        public static Quality VR6K => new Quality(39, "VR-6K", QualitySource.VR, 2880);
+        public static Quality VR8K => new Quality(40, "VR-8K", QualitySource.VR, 3840);
+        public static Quality VR12K => new Quality(41, "VR-12K", QualitySource.VR, 5760);
 
         static Quality()
         {
@@ -151,7 +156,12 @@ namespace NzbDrone.Core.Qualities
                 Remux2160p,
                 BRDISK,
                 RAWHD,
-                VR
+                VR,
+                VR4K,
+                VR5K,
+                VR6K,
+                VR8K,
+                VR12K
             };
 
             AllLookup = new Quality[All.Select(v => v.Id).Max() + 1];
@@ -196,6 +206,11 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.WEBDL3384p)  { Weight = 27, MinSize = 0, MaxSize = null, PreferredSize = null },
                 new QualityDefinition(Quality.WEBDL4320p)  { Weight = 28, MinSize = 0, MaxSize = null, PreferredSize = null },
                 new QualityDefinition(Quality.VR)          { Weight = 31, MinSize = 4, MaxSize = null, PreferredSize = null },
+                new QualityDefinition(Quality.VR4K)        { Weight = 32, MinSize = 4, MaxSize = null, PreferredSize = null },
+                new QualityDefinition(Quality.VR5K)        { Weight = 33, MinSize = 4, MaxSize = null, PreferredSize = null },
+                new QualityDefinition(Quality.VR6K)        { Weight = 34, MinSize = 4, MaxSize = null, PreferredSize = null },
+                new QualityDefinition(Quality.VR8K)        { Weight = 35, MinSize = 4, MaxSize = null, PreferredSize = null },
+                new QualityDefinition(Quality.VR12K)       { Weight = 36, MinSize = 4, MaxSize = null, PreferredSize = null },
             };
         }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
@@ -62,6 +63,23 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _remoteMovie.Movie.QualityProfile.Items = Qualities.QualityFixture.GetDefaultQualities(Quality.DVD, Quality.HDTV720p, Quality.Bluray1080p);
 
             Subject.IsSatisfiedBy(_remoteMovie, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_allow_vr_resolution_variant_in_vr_profile()
+        {
+            _remoteMovie.ParsedMovieInfo.Quality.Quality = Quality.VR8K;
+            _remoteMovie.Movie.QualityProfile.Items = new List<QualityProfileQualityItem>
+            {
+                new QualityProfileQualityItem { Quality = Quality.VR, Allowed = true },
+                new QualityProfileQualityItem { Quality = Quality.VR4K, Allowed = true },
+                new QualityProfileQualityItem { Quality = Quality.VR5K, Allowed = true },
+                new QualityProfileQualityItem { Quality = Quality.VR6K, Allowed = true },
+                new QualityProfileQualityItem { Quality = Quality.VR8K, Allowed = true },
+                new QualityProfileQualityItem { Quality = Quality.VR12K, Allowed = true }
+            };
+
+            Subject.IsSatisfiedBy(_remoteMovie, null).Accepted.Should().BeTrue();
         }
     }
 }

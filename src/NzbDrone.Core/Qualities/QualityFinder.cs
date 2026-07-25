@@ -42,7 +42,8 @@ namespace NzbDrone.Core.Qualities
                 }
             }
 
-            var matchingResolution = Quality.All.Where(q => q.Resolution == resolution)
+            var matchingResolution = Quality.All.Where(q => q.Resolution == resolution &&
+                                                            (source == QualitySource.VR || q.Source != QualitySource.VR))
                                             .OrderBy(q => q.Source)
                                             .ToList();
 

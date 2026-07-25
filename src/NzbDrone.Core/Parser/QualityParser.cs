@@ -16,7 +16,6 @@ namespace NzbDrone.Core.Parser
 
         private static readonly Regex SourceRegex = new (@"\b(?:
                                                             (?<bluray>M?Blu[-_. ]?Ray|HD[-_. ]?DVD|BD(?!$)|UHD2?BD|BDISO|BDMux|BD25|BD50|BR[-_. ]?DISK)|
-                                                            (?<vr>VR180)|
                                                             (?<webdl>WEB[-_. ]?DL(?:mux)?|AmazonHD|AmazonSD|iTunesHD|MaxdomeHD|NetflixU?HD|WebHD|HBOMaxHD|DisneyHD|[. ]WEB[. ](?:[xh][ .]?26[45]|AVC|HEVC|DDP?5[. ]1)|[. ](?-i:WEB)$|(?:\d{3,4}0p)[-. ]WEB[-. ]|[-. ]WEB[-. ]\d{3,4}0p|\b\s\/\sWEB\s\/\s\b|(?:AMZN|NF|DP)[. -]WEB[. -](?!Rip))|
                                                             (?<webrip>WebRip|Web-Rip|WEBMux)|
                                                             (?<hdtv>HDTV)|
@@ -36,6 +35,34 @@ namespace NzbDrone.Core.Parser
                                                             (?<tvrip>TVRip)
                                                             )(?:\b|$|[ .])",
                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+        private static readonly Regex VrSourceRegex = new (@"(?:
+                                                                (?<![A-Z0-9])(?:VR(?:180)?|F180|EAC360|Virtual[ ._+\-]*Reality)(?![A-Z0-9])|
+                                                                (?<![A-Z0-9])(?:
+                                                                    (?:4|5|6|8|12)K[ ._+\-]*VR(?:180)?|
+                                                                    VR(?:180)?[ ._+\-]*(?:4|5|6|8|12)K
+                                                                )(?![A-Z0-9])
+                                                            )",
+                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+        private static readonly Regex VrDimensionRegex = new (@"(?<!\d)(?<width>\d{4,5})[x×](?<height>\d{4,5})(?!\d)",
+                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex VrVerticalResolutionRegex = new (@"(?<![A-Z0-9])(?<vertical>
+                                                                            1920|2048|2160|
+                                                                            2560|2700|
+                                                                            2880|2900|3000|3072|3160|3384|
+                                                                            3840|4096|4320|
+                                                                            5760|6144
+                                                                        )p(?![A-Z0-9])",
+                                                                        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+        private static readonly Regex VrMarketingResolutionRegex = new (@"(?<![A-Z0-9])(?:
+                                                                            (?<marketing>4|5|6|8|12)K[ ._+\-]*VR(?:180)?|
+                                                                            VR(?:180)?[ ._+\-]*(?<marketing>4|5|6|8|12)K|
+                                                                            (?<marketing>4|5|6|8|12)K
+                                                                        )(?![A-Z0-9])",
+                                                                        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
 
         private static readonly Regex RawHDRegex = new (@"\b(?<rawhd>RawHD|Raw[-_. ]HD)\b",
                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -137,6 +164,23 @@ namespace NzbDrone.Core.Parser
             var remuxMatch = RemuxRegex.IsMatch(normalizedName) || GermanRemuxRegex.IsMatch(normalizedName);
             var brDiskMatch = BRDISKRegex.IsMatch(normalizedName);
 
+            if (VrSourceRegex.IsMatch(normalizedName))
+            {
+                var vrResolution = ParseVrResolution(normalizedName);
+
+                result.SourceDetectionSource = QualityDetectionSource.Name;
+                result.Quality = vrResolution.HasValue
+                    ? QualityFinder.FindBySourceAndResolution(QualitySource.VR, vrResolution.Value)
+                    : Quality.VR;
+
+                if (vrResolution.HasValue)
+                {
+                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                }
+
+                return result;
+            }
+
             if (RawHDRegex.IsMatch(normalizedName) && !brDiskMatch)
             {
                 result.SourceDetectionSource = QualityDetectionSource.Name;
@@ -154,12 +198,6 @@ namespace NzbDrone.Core.Parser
             if (sourceMatch != null && sourceMatch.Success)
             {
                 result.SourceDetectionSource = QualityDetectionSource.Name;
-
-                if (sourceMatch.Groups["vr"].Success)
-                {
-                    result.Quality = Quality.VR;
-                    return result;
-                }
 
                 if (sourceMatch.Groups["bluray"].Success)
                 {
@@ -791,6 +829,46 @@ namespace NzbDrone.Core.Parser
             return Resolution.Unknown;
         }
 
+        private static int? ParseVrResolution(string name)
+        {
+            var dimensionsMatch = VrDimensionRegex.Match(name);
+
+            if (dimensionsMatch.Success &&
+                int.TryParse(dimensionsMatch.Groups["width"].Value, out var width) &&
+                int.TryParse(dimensionsMatch.Groups["height"].Value, out var height))
+            {
+                var dimensionResolution = VrResolutionMapper.FromDimensions(width, height);
+
+                if (dimensionResolution.HasValue)
+                {
+                    return dimensionResolution;
+                }
+            }
+
+            var verticalMatch = VrVerticalResolutionRegex.Match(name);
+
+            if (verticalMatch.Success &&
+                int.TryParse(verticalMatch.Groups["vertical"].Value, out var verticalResolution))
+            {
+                var mappedVerticalResolution = VrResolutionMapper.FromVerticalResolution(verticalResolution);
+
+                if (mappedVerticalResolution.HasValue)
+                {
+                    return mappedVerticalResolution;
+                }
+            }
+
+            var marketingMatch = VrMarketingResolutionRegex.Match(name);
+
+            if (marketingMatch.Success &&
+                int.TryParse(marketingMatch.Groups["marketing"].Value, out var marketingResolution))
+            {
+                return VrResolutionMapper.FromMarketingResolution(marketingResolution);
+            }
+
+            return null;
+        }
+
         private static Quality OtherSourceMatch(string name)
         {
             var match = OtherSourceRegex.Match(name);
@@ -861,10 +939,14 @@ namespace NzbDrone.Core.Parser
         R576p = 576,
         R720p = 720,
         R1080p = 1080,
+        R1920p = 1920,
         R2160p = 2160,
+        R2700p = 2700,
         R2880p = 2880,
         R3160p = 3160,
         R3384p = 3384,
-        R4320p = 4320
+        R3840p = 3840,
+        R4320p = 4320,
+        R5760p = 5760
     }
 }

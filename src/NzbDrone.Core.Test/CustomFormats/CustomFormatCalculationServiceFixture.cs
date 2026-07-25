@@ -95,5 +95,30 @@ namespace NzbDrone.Core.Test.CustomFormats
 
             Subject.ParseCustomFormat(history, _movie).Should().BeEmpty();
         }
+
+        [Test]
+        public void should_match_fused_vr_prefix_before_jav_catalog_code()
+        {
+            const string releaseTitle = "【8KVR】 ZZVR-000 【VR】Some Title";
+            var vrFormat = new CustomFormat(
+                "8KVR",
+                new ReleaseTitleSpecification
+                {
+                    Value = @"(?<![A-Za-z0-9])8K[ ._+\-]*VR(?![A-Za-z0-9])"
+                })
+            {
+                Id = 2
+            };
+
+            Mocker.GetMock<ICustomFormatService>()
+                .Setup(service => service.All())
+                .Returns(new List<CustomFormat> { vrFormat });
+
+            var historyFormats = Subject.ParseCustomFormat(GivenHistory(releaseTitle), _movie);
+            var fileFormats = Subject.ParseCustomFormat(GivenMovieFile(releaseTitle, $"{releaseTitle}.mp4"), _movie);
+
+            historyFormats.Should().ContainSingle(format => format.Name == "8KVR");
+            fileFormats.Should().ContainSingle(format => format.Name == "8KVR");
+        }
     }
 }

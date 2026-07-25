@@ -77,6 +77,20 @@ namespace NzbDrone.Core.MediaFiles.MovieImport.Aggregation.Aggregators.Augmenter
                 return null;
             }
 
+            if (source == QualitySource.VR)
+            {
+                var vrResolution = VrResolutionMapper.FromDimensions(width, height);
+
+                if (vrResolution.HasValue)
+                {
+                    _logger.Trace("VR resolution {0}x{1} mapped to {2}", width, height, vrResolution.Value);
+                    return AugmentQualityResult.SourceAndResolutionOnly(source, sourceConfidence, vrResolution.Value, Confidence.MediaInfo);
+                }
+
+                _logger.Trace("VR resolution {0}x{1} is not in a recognized VR resolution family", width, height);
+                return AugmentQualityResult.SourceOnly(source, sourceConfidence);
+            }
+
             // 8K
             if (width >= Threshold8KWidth || height >= Threshold8KHeight)
             {

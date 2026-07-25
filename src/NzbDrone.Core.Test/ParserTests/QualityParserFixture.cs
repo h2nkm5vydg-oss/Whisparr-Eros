@@ -336,6 +336,68 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Quality.Should().Be(Quality.Unknown);
         }
 
+        [TestCase("[8KVR] ZZVR-000 【VR】Some Title", 40)]
+        [TestCase("[8K VR] ZZVR-000", 40)]
+        [TestCase("[8K-VR] ZZVR-000", 40)]
+        [TestCase("[8K.VR] ZZVR-000", 40)]
+        [TestCase("[8K_VR] ZZVR-000", 40)]
+        [TestCase("[8K+VR] ZZVR-000", 40)]
+        [TestCase("[VR8K] ZZVR-000", 40)]
+        [TestCase("【8kvr】 ZZVR-000", 40)]
+        [TestCase("[8K VR180] ZZVR-000", 40)]
+        [TestCase("[4320p VR] ZZVR-000", 40)]
+        [TestCase("[12K EAC360] ZZVR-000", 41)]
+        [TestCase("[6K F180] ZZVR-000", 39)]
+        [TestCase("[5K Virtual Reality] ZZVR-000", 38)]
+        [TestCase("[4K VR] ZZVR-000", 37)]
+        [TestCase("[VR] ZZVR-000", 32)]
+        [TestCase("[VR180] ZZVR-000", 32)]
+        [TestCase("[F180] ZZVR-000", 32)]
+        [TestCase("[EAC360] ZZVR-000", 32)]
+        public void should_parse_vr_quality(string title, int expectedQualityId)
+        {
+            var result = QualityParser.ParseQuality(title);
+
+            result.Quality.Should().Be(Quality.FindById(expectedQualityId));
+            result.SourceDetectionSource.Should().Be(QualityDetectionSource.Name);
+        }
+
+        [TestCase("[3840x1920 2160p 8K VR] ZZVR-000", 37)]
+        [TestCase("[5400x2700 6K VR] ZZVR-000", 38)]
+        [TestCase("[5760x2880 5K VR] ZZVR-000", 39)]
+        [TestCase("[7680x3840 4K VR] ZZVR-000", 40)]
+        [TestCase("[11520x5760 8K VR] ZZVR-000", 41)]
+        [TestCase("[2160p 8K VR] ZZVR-000", 37)]
+        [TestCase("[2700p 8K VR] ZZVR-000", 38)]
+        [TestCase("[2880p 8K VR] ZZVR-000", 39)]
+        [TestCase("[3840p 4K VR] ZZVR-000", 40)]
+        [TestCase("[5760p 8K VR] ZZVR-000", 41)]
+        public void should_use_vr_resolution_precedence(string title, int expectedQualityId)
+        {
+            QualityParser.ParseQuality(title).Quality.Should().Be(Quality.FindById(expectedQualityId));
+        }
+
+        [TestCase("[8K] ZZVR-000", 35)]
+        [TestCase("ZZVR-000", 0)]
+        [TestCase("ExampleVR.invalid", 0)]
+        [TestCase("COVER", 0)]
+        [TestCase("VROOM", 0)]
+        [TestCase("[360] ZZVR-000", 0)]
+        [TestCase("[180°] ZZVR-000", 0)]
+        [TestCase("[3dv] ZZVR-000", 0)]
+        [TestCase("[HSBS] ZZVR-000", 0)]
+        public void should_not_parse_unrelated_tokens_as_vr(string title, int expectedQualityId)
+        {
+            QualityParser.ParseQuality(title).Quality.Should().Be(Quality.FindById(expectedQualityId));
+        }
+
+        [Test]
+        public void should_prefer_vr_over_distribution_source()
+        {
+            QualityParser.ParseQuality("[8KVR] ZZVR-000 WEB-DL BluRay")
+                         .Quality.Should().Be(Quality.VR8K);
+        }
+
         [TestCase("Movie.Name.2004.576p.BDRip.x264-HANDJOB")]
         [TestCase("Movie.Title.S01E05.576p.BluRay.DD5.1.x264-HiSD")]
         public void should_parse_bluray576p_quality(string title)

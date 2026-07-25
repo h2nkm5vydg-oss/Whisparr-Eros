@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Profiles.Qualities;
@@ -147,6 +148,35 @@ namespace NzbDrone.Core.Test.Qualities
             var compare = Subject.Compare(first, second, true);
 
             compare.Should().BeLessThan(0);
+        }
+
+        [Test]
+        public void should_order_vr_resolution_variants_for_upgrades()
+        {
+            var qualities = new[]
+            {
+                Quality.VR,
+                Quality.VR4K,
+                Quality.VR5K,
+                Quality.VR6K,
+                Quality.VR8K,
+                Quality.VR12K
+            };
+
+            Subject = new QualityModelComparer(new QualityProfile
+            {
+                Items = qualities.Select(quality => new QualityProfileQualityItem
+                {
+                    Quality = quality,
+                    Allowed = true
+                }).ToList()
+            });
+
+            for (var i = 1; i < qualities.Length; i++)
+            {
+                Subject.Compare(new QualityModel(qualities[i]), new QualityModel(qualities[i - 1]))
+                       .Should().BeGreaterThan(0);
+            }
         }
     }
 }

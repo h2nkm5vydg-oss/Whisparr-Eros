@@ -134,5 +134,21 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             Subject.BuildFileName(_movie, _movieFile, customFormats: new List<CustomFormat>())
                    .Should().Be(expected);
         }
+
+        [Test]
+        public void should_include_vr_quality_and_selected_vr_custom_format_tokens()
+        {
+            var vr180 = new CustomFormat
+            {
+                Name = "VR180",
+                IncludeCustomFormatWhenRenaming = true
+            };
+
+            _movieFile.Quality = new QualityModel(Quality.VR8K);
+            _namingConfig.StandardMovieFormat = "{Quality Title} {Custom Formats} {Custom Format:VR180}";
+
+            Subject.BuildFileName(_movie, _movieFile, customFormats: new List<CustomFormat> { vr180 })
+                   .Should().Be("VR-8K VR180 VR180");
+        }
     }
 }

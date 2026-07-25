@@ -7,6 +7,7 @@ export enum QualitySource {
   DVD = 'dvd',
   Bluray = 'bluray',
   BlurayRaw = 'blurayRaw',
+  VR = 'vr',
 }
 
 export interface Revision {

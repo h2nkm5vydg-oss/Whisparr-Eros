@@ -12,6 +12,7 @@ using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Performers;
 using NzbDrone.Core.Movies.Studios;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.CustomFormats;
 using NzbDrone.Core.Test.Framework;
 
@@ -32,6 +33,33 @@ namespace NzbDrone.Core.Test.Profiles
 
             Mocker.GetMock<IQualityProfileRepository>()
                 .Verify(v => v.Insert(It.IsAny<QualityProfile>()), Times.Exactly(7));
+        }
+
+        [Test]
+        public void default_vr_profile_should_include_resolution_variants_in_upgrade_order()
+        {
+            Mocker.GetMock<ICustomFormatService>()
+                .Setup(s => s.All())
+                .Returns(new List<CustomFormat>());
+
+            var profile = Subject.GetDefaultProfile(
+                "VR",
+                Quality.VR12K,
+                Quality.VR,
+                Quality.VR4K,
+                Quality.VR5K,
+                Quality.VR6K,
+                Quality.VR8K,
+                Quality.VR12K);
+
+            var vrItems = profile.Items
+                .SelectMany(item => item.Quality == null ? item.Items : new List<QualityProfileQualityItem> { item })
+                .Where(item => item.Quality.Source == QualitySource.VR)
+                .ToList();
+
+            vrItems.Select(item => item.Quality.Id).Should().Equal(32, 37, 38, 39, 40, 41);
+            vrItems.Should().OnlyContain(item => item.Allowed);
+            profile.Cutoff.Should().Be(41);
         }
 
         [Test]

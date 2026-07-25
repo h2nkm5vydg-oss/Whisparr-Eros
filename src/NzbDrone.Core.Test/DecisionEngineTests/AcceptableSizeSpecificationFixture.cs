@@ -107,5 +107,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             Subject.IsSatisfiedBy(_remoteMovie, null).Accepted.Should().Be(false);
             ExceptionVerification.ExpectedWarns(1);
         }
+
+        [Test]
+        public void should_accept_large_vr_release_against_unlimited_vr_quality_definition()
+        {
+            _movie.MovieMetadata.Value.Runtime = 60;
+            _remoteMovie.ParsedMovieInfo.Quality = new QualityModel(Quality.VR8K);
+            _remoteMovie.Release.Size = 20.9.Gigabytes();
+
+            Subject.IsSatisfiedBy(_remoteMovie, null).Accepted.Should().BeTrue();
+        }
     }
 }

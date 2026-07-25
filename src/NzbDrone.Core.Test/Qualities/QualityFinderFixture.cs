@@ -61,5 +61,37 @@ namespace NzbDrone.Core.Test.Qualities
         {
             QualityFinder.FindBySourceAndResolution(source, resolution).Should().Be(Quality.Bluray720p);
         }
+
+        [TestCase(0, 32)]
+        [TestCase(1920, 37)]
+        [TestCase(2700, 38)]
+        [TestCase(2880, 39)]
+        [TestCase(3840, 40)]
+        [TestCase(5760, 41)]
+        public void should_return_exact_vr_quality(int resolution, int expectedQualityId)
+        {
+            QualityFinder.FindBySourceAndResolution(QualitySource.VR, resolution)
+                         .Should().Be(Quality.FindById(expectedQualityId));
+        }
+
+        [Test]
+        public void should_return_generic_vr_for_an_unknown_vr_resolution()
+        {
+            QualityFinder.FindBySourceAndResolution(QualitySource.VR, 5000).Should().Be(Quality.VR);
+        }
+
+        [TestCase(QualitySource.Unknown)]
+        [TestCase(QualitySource.Web)]
+        [TestCase(QualitySource.Bluray)]
+        public void should_not_infer_vr_from_a_vr_only_resolution(QualitySource source)
+        {
+            QualityFinder.FindBySourceAndResolution(source, 3840).Should().Be(Quality.Unknown);
+        }
+
+        [Test]
+        public void should_prefer_non_vr_quality_when_resolution_is_shared()
+        {
+            QualityFinder.FindBySourceAndResolution(QualitySource.Unknown, 2880).Should().Be(Quality.WEBDL2880p);
+        }
     }
 }
