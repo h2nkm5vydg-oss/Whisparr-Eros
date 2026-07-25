@@ -41,22 +41,29 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
                 parameterLog += $"\r\n Studios: {studios.Join(",")}";
             }
 
-            var tags = SettingToList(Settings.Tags);
-            if (tags.Count > 0)
+            var includedTags = StashDBTagFilter.ParseIds(Settings.IncludedTags);
+            if (includedTags.Count > 0)
             {
-                parameterLog += $"\r\n Tags: {tags.Join(",")}";
+                parameterLog += $"\r\n Included Tags: {includedTags.Join(",")}";
+            }
+
+            var excludedTags = StashDBTagFilter.ParseIds(Settings.ExcludedTags);
+            if (excludedTags.Count > 0)
+            {
+                parameterLog += $"\r\n Excluded Tags: {excludedTags.Join(",")}";
             }
 
             parameterLog += $"\r\n OnlyFavoriteStudios: {Settings.OnlyFavoritePerformers}";
 
             Logger.Info($"Importing StashDB scenes for performers: {parameterLog}");
 
+            var tagFilter = StashDBTagFilter.GetServerFilter(Settings);
             var querySceneQuery = new QueryStudioSceneQuery(
                 1,
                 _pageSize,
                 studios,
-                tags,
-                (FilterModifier)Settings.TagsFilter,
+                tagFilter,
+                StashDBTagFilter.HasCombinedFilters(Settings),
                 Settings.OnlyFavoritePerformers,
                 (SceneSort)Settings.Sort,
                 Settings.AfterDate);
@@ -69,11 +76,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
 
             var jsonResponse = JsonConvert.DeserializeObject<QueryScenesResult>(HttpClient.Execute(requestBuilder.Build()).Content);
 
-            var pagesInResponse = (jsonResponse.Data.QueryScenes.Count / _pageSize) + 1;
-
-            var maxPagesAllowed = _maxResultsPerQuery / _pageSize;
-
-            var pages = Math.Min(pagesInResponse, maxPagesAllowed);
+            var pages = StashDBTagFilter.GetPageCount(jsonResponse.Data.QueryScenes.Count, _pageSize, _maxResultsPerQuery);
 
             var requests = new List<ImportListRequest>();
 

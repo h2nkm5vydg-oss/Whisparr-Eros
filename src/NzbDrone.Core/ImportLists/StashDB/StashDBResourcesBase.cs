@@ -33,6 +33,14 @@ namespace NzbDrone.Core.ImportLists.StashDB
         public string Title { get; set; }
         [JsonProperty("release_date")]
         public string ReleaseDate { get; set; }
+        [JsonProperty("tags")]
+        public List<StashDBTag> Tags { get; set; }
+    }
+
+    public class StashDBTag
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
     }
 
     public class QuerySceneQueryVariablesBase

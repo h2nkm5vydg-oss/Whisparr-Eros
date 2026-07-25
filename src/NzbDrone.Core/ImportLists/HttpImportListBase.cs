@@ -31,6 +31,7 @@ namespace NzbDrone.Core.ImportLists
         public virtual TimeSpan RateLimit => TimeSpan.FromSeconds(2);
 
         protected virtual bool UsePreGeneratedPages => false;
+        protected virtual int MaxResultsPerQuery => MaxNumResultsPerQuery;
 
         public abstract IImportListRequestGenerator GetRequestGenerator();
         public abstract IParseImportListResponse GetParser();
@@ -76,7 +77,7 @@ namespace NzbDrone.Core.ImportLists
 
                             pagedMovies.AddRange(page);
 
-                            if (pagedMovies.Count >= MaxNumResultsPerQuery)
+                            if (pagedMovies.Count >= MaxResultsPerQuery)
                             {
                                 break;
                             }
@@ -230,8 +231,16 @@ namespace NzbDrone.Core.ImportLists
                     { IsWarning = true };
                 }
 
-                var firstRequest = firstTier.First();
-                var releases = FetchPage(firstRequest, parser);
+                var releases = new List<ImportListMovie>();
+                foreach (var request in firstTier)
+                {
+                    releases.AddRange(FetchPage(request, parser));
+
+                    if (releases.Any() || !UsePreGeneratedPages)
+                    {
+                        break;
+                    }
+                }
 
                 if (releases.Empty())
                 {

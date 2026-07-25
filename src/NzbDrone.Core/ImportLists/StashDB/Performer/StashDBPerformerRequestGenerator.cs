@@ -47,24 +47,31 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
                 parameterLog += $"\r\n Studios: {studios.Join(",")}";
             }
 
-            var tags = SettingToList(Settings.Tags);
-            if (tags.Count > 0)
+            var includedTags = StashDBTagFilter.ParseIds(Settings.IncludedTags);
+            if (includedTags.Count > 0)
             {
-                parameterLog += $"\r\n Tags: {tags.Join(",")}";
+                parameterLog += $"\r\n Included Tags: {includedTags.Join(",")}";
+            }
+
+            var excludedTags = StashDBTagFilter.ParseIds(Settings.ExcludedTags);
+            if (excludedTags.Count > 0)
+            {
+                parameterLog += $"\r\n Excluded Tags: {excludedTags.Join(",")}";
             }
 
             parameterLog += $"\r\n OnlyFavoriteStudios: {Settings.OnlyFavoriteStudios}";
 
             Logger.Info($"Importing StashDB scenes for performers: {parameterLog}");
 
+            var tagFilter = StashDBTagFilter.GetServerFilter(Settings);
             var querySceneQuery = new QueryPerformerSceneQuery(
                 1,
                 _pageSize,
                 performers,
                 studios,
                 (FilterModifier)Settings.StudiosFilter,
-                tags,
-                (FilterModifier)Settings.TagsFilter,
+                tagFilter,
+                StashDBTagFilter.HasCombinedFilters(Settings),
                 Settings.OnlyFavoriteStudios,
                 (SceneSort)Settings.Sort,
                 Settings.AfterDate);
@@ -77,11 +84,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
 
             var jsonResponse = JsonConvert.DeserializeObject<QueryScenesResult>(HttpClient.Execute(requestBuilder.Build()).Content);
 
-            var pagesInResponse = (jsonResponse.Data.QueryScenes.Count / _pageSize) + 1;
-
-            var maxPagesAllowed = _maxResultsPerQuery / _pageSize;
-
-            var pages = Math.Min(pagesInResponse, maxPagesAllowed);
+            var pages = StashDBTagFilter.GetPageCount(jsonResponse.Data.QueryScenes.Count, _pageSize, _maxResultsPerQuery);
 
             var requests = new List<ImportListRequest>();
 

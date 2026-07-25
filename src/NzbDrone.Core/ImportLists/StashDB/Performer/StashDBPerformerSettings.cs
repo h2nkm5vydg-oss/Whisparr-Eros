@@ -18,7 +18,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
         }
     }
 
-    public class StashDBPerformerSettings : StashDBSettingsBase<StashDBPerformerSettings>
+    public class StashDBPerformerSettings : StashDBSettingsBase<StashDBPerformerSettings>, IStashDBTagFilterSettings
     {
         protected override AbstractValidator<StashDBPerformerSettings> Validator => new StashDBPerformerSettingsValidator();
 
@@ -31,11 +31,11 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
         [FieldDefinition(5, Label = "Studios Filter", Type = FieldType.Select, SelectOptions = typeof(FilterModifier), HelpText = "Filter studios by")]
         public int StudiosFilter { get; set; }
 
-        [FieldDefinition(6, Label = "Tag StashIDs", HelpText = "Enter tag StashIDs, comma seperated  (Optional)")]
-        public string Tags { get; set; }
+        [FieldDefinition(6, Label = "StashDBIncludedTagStashIds", HelpText = "StashDBIncludedTagStashIdsHelpText")]
+        public string IncludedTags { get; set; }
 
-        [FieldDefinition(7, Label = "Tags Filter", Type = FieldType.Select, SelectOptions = typeof(FilterModifier), HelpText = "Filter tags by")]
-        public int TagsFilter { get; set; }
+        [FieldDefinition(7, Label = "StashDBExcludedTagStashIds", HelpText = "StashDBExcludedTagStashIdsHelpText")]
+        public string ExcludedTags { get; set; }
 
         [FieldDefinition(8, Label = "Only Favorite Studios", Type = FieldType.Checkbox, HelpText = "Filter by favorite studios")]
         public bool OnlyFavoriteStudios { get; set; }

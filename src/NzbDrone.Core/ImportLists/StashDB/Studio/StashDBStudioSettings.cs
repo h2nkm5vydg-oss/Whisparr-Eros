@@ -18,18 +18,18 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
         }
     }
 
-    public class StashDBStudioSettings : StashDBSettingsBase<StashDBStudioSettings>
+    public class StashDBStudioSettings : StashDBSettingsBase<StashDBStudioSettings>, IStashDBTagFilterSettings
     {
         protected override AbstractValidator<StashDBStudioSettings> Validator => new StashDBPerformerSettingsValidator();
 
         [FieldDefinition(3, Label = "Studios StashIDs", HelpText = "Enter Studios StashIDs, comma seperated")]
         public string Studios { get; set; }
 
-        [FieldDefinition(4, Label = "Tag StashIDs", HelpText = "Enter Tags StashIDs, comma seperated (Optional)")]
-        public string Tags { get; set; }
+        [FieldDefinition(4, Label = "StashDBIncludedTagStashIds", HelpText = "StashDBIncludedTagStashIdsHelpText")]
+        public string IncludedTags { get; set; }
 
-        [FieldDefinition(5, Label = "Tags Filter", Type = FieldType.Select, SelectOptions = typeof(FilterModifier), HelpText = "Filter tags by")]
-        public int TagsFilter { get; set; }
+        [FieldDefinition(5, Label = "StashDBExcludedTagStashIds", HelpText = "StashDBExcludedTagStashIdsHelpText")]
+        public string ExcludedTags { get; set; }
 
         [FieldDefinition(6, Label = "Only Favorite Performers", Type = FieldType.Checkbox, HelpText = "Filter by favorite performers")]
         public bool OnlyFavoritePerformers { get; set; }

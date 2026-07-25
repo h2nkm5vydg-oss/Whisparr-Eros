@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace NzbDrone.Core.ImportLists.StashDB.Studio
@@ -8,19 +7,26 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
         private QueryTagsSceneQueryVariables _variables;
         private string _query;
 
-        public QueryTagsSceneQuery(int page, int pageSize, List<string> tags, FilterModifier tagsFilter, SceneSort sort, string afterDate)
+        public QueryTagsSceneQuery(int page, int pageSize, FilterType tagFilter, bool includeSceneTags, SceneSort sort, string afterDate)
         {
-            _query = @"query Scenes($input: SceneQueryInput!) {
-                         queryScenes(input: $input) {
-                           scenes {
+            var tagsQuery = includeSceneTags
+                ? @"
+                             tags {
+                               id
+                             }"
+                : string.Empty;
+
+            _query = $@"query Scenes($input: SceneQueryInput!) {{
+                         queryScenes(input: $input) {{
+                           scenes {{
                              id
                              title
-                             release_date
-                           }
+                             release_date{tagsQuery}
+                           }}
                            count
-                         }
-                        }";
-            _variables = new QueryTagsSceneQueryVariables(page, pageSize, tags, tagsFilter, sort, afterDate);
+                         }}
+                        }}";
+            _variables = new QueryTagsSceneQueryVariables(page, pageSize, tagFilter, sort, afterDate);
         }
 
         public string Query
@@ -47,12 +53,12 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
 
     public class QueryTagsSceneQueryVariables : QuerySceneQueryVariablesBase
     {
-        public QueryTagsSceneQueryVariables(int page, int pageSize, List<string> tags, FilterModifier tagsFilter, SceneSort sort, string afterDate)
+        public QueryTagsSceneQueryVariables(int page, int pageSize, FilterType tagFilter, SceneSort sort, string afterDate)
             : base(page, pageSize, sort, afterDate)
         {
-            if (tags.Count > 0)
+            if (tagFilter != null)
             {
-                Input.tags = new FilterType(tagsFilter, tags);
+                Input.tags = tagFilter;
             }
 
             Input.sort = sort;

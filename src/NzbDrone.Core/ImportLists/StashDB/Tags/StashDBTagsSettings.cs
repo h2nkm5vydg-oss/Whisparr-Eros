@@ -14,14 +14,14 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
         }
     }
 
-    public class StashDBTagsSettings : StashDBSettingsBase<StashDBTagsSettings>
+    public class StashDBTagsSettings : StashDBSettingsBase<StashDBTagsSettings>, IStashDBTagFilterSettings
     {
         protected override AbstractValidator<StashDBTagsSettings> Validator => new StashDBTagsSettingsValidator();
 
-        [FieldDefinition(4, Label = "Tag StashIDs", HelpText = "Enter Tags StashIDs, comma seperated (Optional)")]
-        public string Tags { get; set; }
+        [FieldDefinition(4, Label = "StashDBIncludedTagStashIds", HelpText = "StashDBIncludedTagStashIdsHelpText")]
+        public string IncludedTags { get; set; }
 
-        [FieldDefinition(5, Label = "Tags Filter", Type = FieldType.Select, SelectOptions = typeof(FilterModifier), HelpText = "Filter tags by")]
-        public int TagsFilter { get; set; }
+        [FieldDefinition(5, Label = "StashDBExcludedTagStashIds", HelpText = "StashDBExcludedTagStashIdsHelpText")]
+        public string ExcludedTags { get; set; }
     }
 }

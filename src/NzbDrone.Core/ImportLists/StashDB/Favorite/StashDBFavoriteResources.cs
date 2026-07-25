@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace NzbDrone.Core.ImportLists.StashDB.Favorite
@@ -8,19 +7,26 @@ namespace NzbDrone.Core.ImportLists.StashDB.Favorite
         private QueryFavoriteSceneQueryVariables _variables;
         private string _query;
 
-        public QueryFavoriteSceneQuery(int page, int pageSize, FavoriteFilter filter, List<string> tags, FilterModifier tagsFilter, SceneSort sort, string afterDate)
+        public QueryFavoriteSceneQuery(int page, int pageSize, FavoriteFilter filter, FilterType tagFilter, bool includeSceneTags, SceneSort sort, string afterDate)
         {
-            _query = @"query Scenes($input: SceneQueryInput!) {
-                         queryScenes(input: $input) {
-                           scenes {
+            var tagsQuery = includeSceneTags
+                ? @"
+                             tags {
+                               id
+                             }"
+                : string.Empty;
+
+            _query = $@"query Scenes($input: SceneQueryInput!) {{
+                         queryScenes(input: $input) {{
+                           scenes {{
                              id
                              title
-                             release_date
-                           }
+                             release_date{tagsQuery}
+                           }}
                            count
-                         }
-                        }";
-            _variables = new QueryFavoriteSceneQueryVariables(page, pageSize, filter, tags, tagsFilter, sort, afterDate);
+                         }}
+                        }}";
+            _variables = new QueryFavoriteSceneQueryVariables(page, pageSize, filter, tagFilter, sort, afterDate);
         }
 
         public string Query
@@ -47,14 +53,14 @@ namespace NzbDrone.Core.ImportLists.StashDB.Favorite
 
     public class QueryFavoriteSceneQueryVariables : QuerySceneQueryVariablesBase
     {
-        public QueryFavoriteSceneQueryVariables(int page, int pageSize, FavoriteFilter filter, List<string> tags, FilterModifier tagsFilter, SceneSort sort, string dateAfter)
+        public QueryFavoriteSceneQueryVariables(int page, int pageSize, FavoriteFilter filter, FilterType tagFilter, SceneSort sort, string dateAfter)
             : base(page, pageSize, sort, dateAfter)
         {
             Input.favorites = filter;
 
-            if (tags.Count > 0)
+            if (tagFilter != null)
             {
-                Input.tags = new FilterType(tagsFilter, tags);
+                Input.tags = tagFilter;
             }
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.ImportLists.Exceptions;
@@ -9,6 +10,13 @@ namespace NzbDrone.Core.ImportLists.StashDB
 {
     public class StashDBParser : IParseImportListResponse
     {
+        private readonly HashSet<string> _excludedTagIds;
+
+        public StashDBParser(IEnumerable<string> excludedTagIds = null)
+        {
+            _excludedTagIds = new HashSet<string>(excludedTagIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        }
+
         public virtual IList<ImportListMovie> ParseResponse(ImportListResponse importResponse)
         {
             var scenes = new List<ImportListMovie>();
@@ -28,6 +36,11 @@ namespace NzbDrone.Core.ImportLists.StashDB
 
             foreach (var scene in jsonResponse.Data.QueryScenes.Scenes)
             {
+                if (scene.Tags?.Any(tag => _excludedTagIds.Contains(tag.Id)) == true)
+                {
+                    continue;
+                }
+
                 scenes.Add(MapListMovie(scene));
             }
 

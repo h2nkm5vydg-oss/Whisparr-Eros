@@ -8,19 +8,26 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
         private QueryStudioSceneQueryVariables _variables;
         private string _query;
 
-        public QueryStudioSceneQuery(int page, int pageSize, List<string> studios, List<string> tags, FilterModifier tagsFilter, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
+        public QueryStudioSceneQuery(int page, int pageSize, List<string> studios, FilterType tagFilter, bool includeSceneTags, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
         {
-            _query = @"query Scenes($input: SceneQueryInput!) {
-                         queryScenes(input: $input) {
-                           scenes {
+            var tagsQuery = includeSceneTags
+                ? @"
+                             tags {
+                               id
+                             }"
+                : string.Empty;
+
+            _query = $@"query Scenes($input: SceneQueryInput!) {{
+                         queryScenes(input: $input) {{
+                           scenes {{
                              id
                              title
-                             release_date
-                           }
+                             release_date{tagsQuery}
+                           }}
                            count
-                         }
-                        }";
-            _variables = new QueryStudioSceneQueryVariables(page, pageSize, studios, tags, tagsFilter, onlyFavoriteStudios, sort, afterDate);
+                         }}
+                        }}";
+            _variables = new QueryStudioSceneQueryVariables(page, pageSize, studios, tagFilter, onlyFavoriteStudios, sort, afterDate);
         }
 
         public string Query
@@ -47,14 +54,14 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
 
     public class QueryStudioSceneQueryVariables : QuerySceneQueryVariablesBase
     {
-        public QueryStudioSceneQueryVariables(int page, int pageSize, List<string> studios, List<string> tags, FilterModifier tagsFilter, bool onlyFavoritePerformers, SceneSort sort, string afterDate)
+        public QueryStudioSceneQueryVariables(int page, int pageSize, List<string> studios, FilterType tagFilter, bool onlyFavoritePerformers, SceneSort sort, string afterDate)
             : base(page, pageSize, sort, afterDate)
         {
             Input.studios = new FilterType(FilterModifier.INCLUDES, studios);
 
-            if (tags.Count > 0)
+            if (tagFilter != null)
             {
-                Input.tags = new FilterType(tagsFilter, tags);
+                Input.tags = tagFilter;
             }
 
             if (onlyFavoritePerformers)

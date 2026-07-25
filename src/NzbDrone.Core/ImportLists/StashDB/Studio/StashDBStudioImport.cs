@@ -26,7 +26,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Studio
         public override string Name => "StashDB Studio";
         public override IImportListRequestGenerator GetRequestGenerator()
         {
-            return new StashDBStudioRequestGenerator(PageSize, Settings.Limit)
+            return new StashDBStudioRequestGenerator(PageSize, MaxCandidateResults)
             {
                 RequestBuilder = _requestBuilder,
                 Settings = Settings,

@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.Extensions;
@@ -35,20 +33,27 @@ namespace NzbDrone.Core.ImportLists.StashDB.Favorite
         {
             var parameterLog = $"Importing StashDB scenes from favorites: {Settings.Filter}";
 
-            var tags = SettingToList(Settings.Tags);
-            if (tags.Count > 0)
+            var includedTags = StashDBTagFilter.ParseIds(Settings.IncludedTags);
+            if (includedTags.Count > 0)
             {
-                parameterLog += $"\r\n Tags: {tags.Join(",")}";
+                parameterLog += $"\r\n Included Tags: {includedTags.Join(",")}";
+            }
+
+            var excludedTags = StashDBTagFilter.ParseIds(Settings.ExcludedTags);
+            if (excludedTags.Count > 0)
+            {
+                parameterLog += $"\r\n Excluded Tags: {excludedTags.Join(",")}";
             }
 
             Logger.Info(parameterLog);
 
+            var tagFilter = StashDBTagFilter.GetServerFilter(Settings);
             var querySceneQuery = new QueryFavoriteSceneQuery(
                 1,
                 _pageSize,
                 (FavoriteFilter)Settings.Filter,
-                tags,
-                (FilterModifier)Settings.TagsFilter,
+                tagFilter,
+                StashDBTagFilter.HasCombinedFilters(Settings),
                 (SceneSort)Settings.Sort,
                 Settings.AfterDate);
 
@@ -60,11 +65,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Favorite
 
             var jsonResponse = JsonConvert.DeserializeObject<QueryScenesResult>(HttpClient.Execute(requestBuilder.Build()).Content);
 
-            var pagesInResponse = (jsonResponse.Data.QueryScenes.Count / _pageSize) + 1;
-
-            var maxPagesAllowed = _maxResultsPerQuery / _pageSize;
-
-            var pages = Math.Min(pagesInResponse, maxPagesAllowed);
+            var pages = StashDBTagFilter.GetPageCount(jsonResponse.Data.QueryScenes.Count, _pageSize, _maxResultsPerQuery);
 
             var requests = new List<ImportListRequest>();
 
@@ -82,18 +83,6 @@ namespace NzbDrone.Core.ImportLists.StashDB.Favorite
             }
 
             return requests;
-        }
-
-        private List<string> SettingToList(string value)
-        {
-            var list = new List<string>();
-
-            if (!string.IsNullOrEmpty(value?.Trim()))
-            {
-                list = Array.ConvertAll(value.Split(","), x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
-            }
-
-            return list;
         }
     }
 }

@@ -8,19 +8,26 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
         private QueryPerformerSceneQueryVariables _variables;
         private string _query;
 
-        public QueryPerformerSceneQuery(int page, int pageSize, List<string> performers, List<string> studios, FilterModifier studiosFilter, List<string> tags, FilterModifier tagsFilter, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
+        public QueryPerformerSceneQuery(int page, int pageSize, List<string> performers, List<string> studios, FilterModifier studiosFilter, FilterType tagFilter, bool includeSceneTags, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
         {
-            _query = @"query Scenes($input: SceneQueryInput!) {
-                         queryScenes(input: $input) {
-                           scenes {
+            var tagsQuery = includeSceneTags
+                ? @"
+                             tags {
+                               id
+                             }"
+                : string.Empty;
+
+            _query = $@"query Scenes($input: SceneQueryInput!) {{
+                         queryScenes(input: $input) {{
+                           scenes {{
                              id
                              title
-                             release_date
-                           }
+                             release_date{tagsQuery}
+                           }}
                            count
-                         }
-                        }";
-            _variables = new QueryPerformerSceneQueryVariables(page, pageSize, performers, studios, studiosFilter, tags, tagsFilter, onlyFavoriteStudios, sort, afterDate);
+                         }}
+                        }}";
+            _variables = new QueryPerformerSceneQueryVariables(page, pageSize, performers, studios, studiosFilter, tagFilter, onlyFavoriteStudios, sort, afterDate);
         }
 
         public string Query
@@ -47,7 +54,7 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
 
     public class QueryPerformerSceneQueryVariables : QuerySceneQueryVariablesBase
     {
-        public QueryPerformerSceneQueryVariables(int page, int pageSize, List<string> performers, List<string> studios, FilterModifier studiosFilter, List<string> tags, FilterModifier tagsFilter, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
+        public QueryPerformerSceneQueryVariables(int page, int pageSize, List<string> performers, List<string> studios, FilterModifier studiosFilter, FilterType tagFilter, bool onlyFavoriteStudios, SceneSort sort, string afterDate)
             : base(page, pageSize, sort, afterDate)
         {
             Input.performers = new FilterType(FilterModifier.INCLUDES, performers);
@@ -56,9 +63,9 @@ namespace NzbDrone.Core.ImportLists.StashDB.Performer
                 Input.studios = new FilterType(studiosFilter, studios);
             }
 
-            if (tags.Count > 0)
+            if (tagFilter != null)
             {
-                Input.tags = new FilterType(tagsFilter, tags);
+                Input.tags = tagFilter;
             }
 
             if (onlyFavoriteStudios)
